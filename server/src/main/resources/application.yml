@@ -20,9 +20,7 @@ app:
     client-secret: ${GITHUB_CLIENT_SECRET}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-  # Kafka is not wired up yet (notification/ is still empty) - commented out so
-  # startup doesn't require real KAFKA_* values until a Kafka client is added.
-  # kafka:
-  #   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:}
-  #   username: ${KAFKA_USERNAME:}
-  #   password: ${KAFKA_PASSWORD:}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    username: ${KAFKA_USERNAME}
+    password: ${KAFKA_PASSWORD}
