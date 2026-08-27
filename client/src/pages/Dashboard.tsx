@@ -1,17 +1,37 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
+import { getToken } from '../api/auth';
+import { submitAnalysis } from '../api/analysis';
 
 const JD_SKILLS = ['Kafka', 'Postgres', 'Idempotency', 'Distributed transactions', 'Observability', 'Python', 'REST APIs', 'System design'];
 const RESUME_SKILLS = ['Python', 'Django', 'REST APIs', 'Redis', 'Docker', 'Postgres', 'Unit testing', 'CI/CD'];
 
+const DEFAULT_JD = `Senior Backend Engineer — Payments\n\nBuild and operate high-throughput payment services. You'll design event-driven systems on Kafka, own Postgres schema design, and ship resilient APIs. Experience with idempotency, distributed transactions, and observability required.`;
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [jdText, setJdText] = useState(DEFAULT_JD);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleAnalyse() {
-    // Generate a mock analysisId; in production this comes from the POST response
-    const analysisId = crypto.randomUUID();
-    navigate(`/processing/${analysisId}`);
+  useEffect(() => {
+    if (!getToken()) {
+      navigate('/');
+    }
+  }, [navigate]);
+
+  async function handleAnalyse() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const { analysisId } = await submitAnalysis(jdText, null);
+      navigate(`/processing/${analysisId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -43,7 +63,8 @@ export default function Dashboard() {
             <textarea
               className="w-full h-[230px] resize-y border border-[#e4e4ec] rounded-[11px] px-[15px] py-[14px] text-[14px] leading-[1.55] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
               placeholder="Paste the full job description here…"
-              defaultValue={`Senior Backend Engineer — Payments\n\nBuild and operate high-throughput payment services. You'll design event-driven systems on Kafka, own Postgres schema design, and ship resilient APIs. Experience with idempotency, distributed transactions, and observability required.`}
+              value={jdText}
+              onChange={(e) => setJdText(e.target.value)}
             />
             <div className="mt-4">
               <div className="text-[12px] font-bold text-[#8a8a95] tracking-wide mb-[10px]">AUTO-DETECTED SKILLS</div>
@@ -111,15 +132,19 @@ export default function Dashboard() {
         <div className="flex flex-wrap items-center gap-4 mt-7">
           <button
             onClick={handleAnalyse}
-            className="inline-flex items-center gap-[9px] bg-brand text-white border-none px-[26px] py-[15px] rounded-[11px] text-[15px] font-bold cursor-pointer hover:bg-brand-hover transition-colors"
+            disabled={submitting}
+            className="inline-flex items-center gap-[9px] bg-brand text-white border-none px-[26px] py-[15px] rounded-[11px] text-[15px] font-bold cursor-pointer hover:bg-brand-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Analyse &amp; generate prep plan
+            {submitting ? 'Submitting…' : 'Analyse & generate prep plan'}
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </button>
           <span className="text-[13px] text-[#8a8a95]">Takes about 20 seconds · you can close the tab</span>
         </div>
+        {error && (
+          <div className="mt-3 text-[13px] font-semibold text-[#d4483f]">{error}</div>
+        )}
       </div>
     </div>
   );

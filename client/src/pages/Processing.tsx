@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
+import { openSseConnection } from '../api/sse';
 
 type StepStatus = 'done' | 'active' | 'waiting';
 
@@ -81,50 +82,28 @@ export default function Processing() {
   const { analysisId } = useParams<{ analysisId: string }>();
   const navigate = useNavigate();
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
-  const esRef = useRef<EventSource | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!analysisId) return;
 
-    const es = new EventSource(`/api/events/${analysisId}`);
-    esRef.current = es;
-
-    function markStep(stepId: string, status: StepStatus) {
-      setSteps((prev) =>
-        prev.map((s) => (s.id === stepId ? { ...s, status, tag: stepTag(status, s.tag) } : s))
-      );
-    }
-
-    function advanceNext(completedId: string) {
-      setSteps((prev) => {
-        const idx = prev.findIndex((s) => s.id === completedId);
-        if (idx === -1) return prev;
-        return prev.map((s, i) => {
-          if (i === idx) return { ...s, status: 'done', tag: 'DONE' };
-          if (i === idx + 1 && s.status === 'waiting') return { ...s, status: 'active', tag: 'WORKING' };
-          return s;
-        });
-      });
-    }
-
     // Seed first step as active
-    markStep('kafka', 'active');
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 0 ? { ...s, status: 'active', tag: stepTag('active', s.tag) } : s))
+    );
 
-    es.addEventListener('kafka_published', () => advanceNext('kafka'));
-    es.addEventListener('skills_extracted', () => advanceNext('skills'));
-    es.addEventListener('rag_retrieved', () => advanceNext('rag'));
-    es.addEventListener('plan_generated', () => advanceNext('plan'));
-    es.addEventListener('complete', () => {
-      setSteps((prev) => prev.map((s) => ({ ...s, status: 'done', tag: 'DONE' })));
-      es.close();
-      navigate(`/results/${analysisId}`);
-    });
+    const closeSse = openSseConnection(
+      analysisId,
+      () => {
+        setSteps((prev) => prev.map((s) => ({ ...s, status: 'done', tag: 'DONE' })));
+        navigate(`/results/${analysisId}`);
+      },
+      () => {
+        setError('Something went wrong while generating your prep plan. Please try again.');
+      }
+    );
 
-    es.onerror = () => es.close();
-
-    return () => {
-      es.close();
-    };
+    return closeSse;
   }, [analysisId, navigate]);
 
   return (
@@ -161,13 +140,19 @@ export default function Processing() {
             ))}
           </div>
 
-          <div className="flex items-center justify-center gap-2 mt-6 text-[13px] text-[#8a8a95] text-center">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4l3 2" />
-            </svg>
-            You can safely close this tab — we'll pick up right here when you return.
-          </div>
+          {error ? (
+            <div className="flex items-center justify-center gap-2 mt-6 text-[13px] font-semibold text-[#d4483f] text-center">
+              {error}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 mt-6 text-[13px] text-[#8a8a95] text-center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4l3 2" />
+              </svg>
+              You can safely close this tab — we'll pick up right here when you return.
+            </div>
+          )}
 
           <div className="text-center mt-[22px]">
             <button

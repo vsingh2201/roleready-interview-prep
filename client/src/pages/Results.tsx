@@ -1,20 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
-
-const GAPS = [
-  { name: 'Kafka / event streaming',  label: 'Gap',     pct: '28%', color: '#d4483f' },
-  { name: 'Distributed transactions', label: 'Gap',     pct: '34%', color: '#d4483f' },
-  { name: 'PostgreSQL schema design', label: 'Growing', pct: '58%', color: '#d99a20' },
-  { name: 'API design & idempotency', label: 'Growing', pct: '64%', color: '#d99a20' },
-  { name: 'Observability',            label: 'Strong',  pct: '86%', color: '#2f9e6b' },
-];
-
-const WEEKS = [
-  { label: 'WEEK 1', title: 'Kafka & event-driven design', desc: 'Topics, partitions, consumer groups, exactly-once semantics.' },
-  { label: 'WEEK 2', title: 'Payments & databases',        desc: 'Idempotency keys, distributed transactions, Postgres modelling.' },
-  { label: 'WEEK 3', title: 'Mock interviews',             desc: 'Timed system-design and behavioural rounds with feedback.' },
-];
+import { getPrepPlan, type PrepPlan } from '../api/analysis';
 
 type Difficulty = 'Hard' | 'Medium' | 'Easy';
 
@@ -24,16 +12,21 @@ interface Question {
   topic: string;
   similarity: string;
   source: string;
+  coachingHint: string;
 }
 
-const ALL_QUESTIONS: Question[] = [
-  { text: 'Design an idempotent payment API that safely handles client retries.',        difficulty: 'Hard',   topic: 'System Design',       similarity: '94%', source: 'Stripe · Backend loop, 2024' },
-  { text: 'How would you guarantee exactly-once processing in a Kafka consumer?',        difficulty: 'Hard',   topic: 'Kafka',               similarity: '91%', source: 'Confluent interview corpus' },
-  { text: 'Walk through modelling a ledger for double-entry accounting in Postgres.',    difficulty: 'Medium', topic: 'Databases',           similarity: '88%', source: 'Adyen · Onsite, 2023' },
-  { text: 'When would you choose a saga over a two-phase commit?',                       difficulty: 'Medium', topic: 'Distributed Systems', similarity: '82%', source: 'Uber Eng blog · derived' },
-  { text: 'What signals would you instrument to detect a stuck payment pipeline?',       difficulty: 'Easy',   topic: 'Observability',       similarity: '79%', source: 'Datadog · SRE guide' },
-  { text: 'Explain how consumer lag builds up and how you would mitigate it.',           difficulty: 'Easy',   topic: 'Kafka',               similarity: '76%', source: 'Confluent interview corpus' },
-];
+interface Gap {
+  name: string;
+  label: string;
+  pct: string;
+  color: string;
+}
+
+interface Week {
+  label: string;
+  title: string;
+  desc: string;
+}
 
 function diffColors(d: Difficulty) {
   if (d === 'Hard')   return { fg: '#d4483f', bg: '#fbeceb' };
@@ -41,13 +34,89 @@ function diffColors(d: Difficulty) {
   return { fg: '#2f9e6b', bg: '#e8f6ef' };
 }
 
+function toDifficulty(raw: string): Difficulty {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'hard') return 'Hard';
+  if (normalized === 'easy') return 'Easy';
+  return 'Medium';
+}
+
+function gapVisual(status: string): { label: string; pct: string; color: string } {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === 'gap') return { label: 'Gap', pct: '25%', color: '#d4483f' };
+  if (normalized === 'partial') return { label: 'Growing', pct: '55%', color: '#d99a20' };
+  return { label: 'Strong', pct: '85%', color: '#2f9e6b' };
+}
+
+function matchFitLabel(score: number): string {
+  if (score >= 80) return 'Strong fit';
+  if (score >= 60) return 'Good fit';
+  return 'Needs work';
+}
+
+function toGaps(plan: PrepPlan): Gap[] {
+  return plan.skillGaps.map((g) => ({ name: g.skill, ...gapVisual(g.status) }));
+}
+
+function toWeeks(plan: PrepPlan): Week[] {
+  return plan.studyPlan
+    .slice()
+    .sort((a, b) => a.week - b.week)
+    .map((w) => ({ label: `WEEK ${w.week}`, title: w.title, desc: w.description }));
+}
+
+function toQuestions(plan: PrepPlan): Question[] {
+  return plan.questions.map((q) => ({
+    text: q.questionText,
+    difficulty: toDifficulty(q.difficulty),
+    topic: q.topic,
+    similarity: `${Math.round(q.similarityScore * 100)}%`,
+    source: q.source,
+    coachingHint: q.coachingHint,
+  }));
+}
+
 type FilterVal = 'All' | Difficulty;
 const FILTERS: FilterVal[] = ['All', 'Hard', 'Medium', 'Easy'];
 
 export default function Results() {
+  const { analysisId } = useParams<{ analysisId: string }>();
   const [filter, setFilter] = useState<FilterVal>('All');
+  const [plan, setPlan] = useState<PrepPlan | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedHint, setExpandedHint] = useState<number | null>(null);
 
-  const visible = ALL_QUESTIONS.filter((q) => filter === 'All' || q.difficulty === filter);
+  useEffect(() => {
+    if (!analysisId) return;
+    setLoading(true);
+    setError(null);
+    getPrepPlan(analysisId)
+      .then(setPlan)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load your prep plan.'))
+      .finally(() => setLoading(false));
+  }, [analysisId]);
+
+  const gaps = plan ? toGaps(plan) : [];
+  const weeks = plan ? toWeeks(plan) : [];
+  const allQuestions = plan ? toQuestions(plan) : [];
+  const visible = allQuestions.filter((q) => filter === 'All' || q.difficulty === filter);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-[15px] text-[#6b6b77]">
+        Loading your prep plan…
+      </div>
+    );
+  }
+
+  if (error || !plan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-[15px] font-semibold text-[#d4483f]">
+        {error ?? 'Prep plan not found.'}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -67,7 +136,7 @@ export default function Results() {
         >
           <div className="text-[12px] font-extrabold text-[#8a8a95] tracking-[.05em] mb-4">SKILL GAPS</div>
           <div className="flex flex-col gap-4 mb-[34px]">
-            {GAPS.map((g) => (
+            {gaps.map((g) => (
               <div key={g.name}>
                 <div className="flex justify-between mb-[7px]">
                   <span className="text-[13.5px] font-semibold">{g.name}</span>
@@ -82,7 +151,7 @@ export default function Results() {
 
           <div className="text-[12px] font-extrabold text-[#8a8a95] tracking-[.05em] mb-4">3-WEEK STUDY PLAN</div>
           <div className="flex flex-col gap-3">
-            {WEEKS.map((w) => (
+            {weeks.map((w) => (
               <div
                 key={w.label}
                 className="rounded-[9px] px-4 py-[14px] bg-white border border-[#ececf2]"
@@ -101,14 +170,14 @@ export default function Results() {
           <div className="flex flex-wrap items-center justify-between gap-4 mb-[26px]">
             <div>
               <h1 className="text-[24px] font-extrabold tracking-tight mb-1">Your prep plan</h1>
-              <p className="text-[14px] text-[#6b6b77]">28 interview questions matched to this role</p>
+              <p className="text-[14px] text-[#6b6b77]">{allQuestions.length} interview questions matched to this role</p>
             </div>
             <div className="flex items-center gap-[13px] border border-[#ececf2] rounded-[12px] px-[18px] py-[10px] bg-white">
               <div className="text-right">
                 <div className="text-[11px] font-bold text-[#8a8a95] tracking-[.03em]">MATCH SCORE</div>
-                <div className="text-[12px] text-[#6b6b77]">Strong fit</div>
+                <div className="text-[12px] text-[#6b6b77]">{matchFitLabel(plan.matchScore)}</div>
               </div>
-              <div className="text-[34px] font-extrabold text-brand tracking-tight leading-none">84%</div>
+              <div className="text-[34px] font-extrabold text-brand tracking-tight leading-none">{plan.matchScore}%</div>
             </div>
           </div>
 
@@ -154,13 +223,21 @@ export default function Results() {
                       </svg>
                       {q.source}
                     </span>
-                    <button className="inline-flex items-center gap-[6px] text-[12.5px] font-bold text-brand bg-white border border-[#ddd7f4] px-[13px] py-[7px] rounded-[9px] cursor-pointer hover:bg-brand-light transition-colors">
+                    <button
+                      onClick={() => setExpandedHint((prev) => (prev === idx ? null : idx))}
+                      className="inline-flex items-center gap-[6px] text-[12.5px] font-bold text-brand bg-white border border-[#ddd7f4] px-[13px] py-[7px] rounded-[9px] cursor-pointer hover:bg-brand-light transition-colors"
+                    >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" />
                       </svg>
                       Coaching hint
                     </button>
                   </div>
+                  {expandedHint === idx && (
+                    <div className="mt-3 pt-3 border-t border-[#ececf2] text-[13px] leading-relaxed text-[#5c5c68]">
+                      {q.coachingHint}
+                    </div>
+                  )}
                 </div>
               );
             })}

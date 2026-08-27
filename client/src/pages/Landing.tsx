@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
+import { login, saveToken, signup } from '../api/auth';
 
 type AuthTab = 'signin' | 'signup';
 
@@ -25,12 +26,36 @@ export default function Landing() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<AuthTab>('signin');
   const [showPwd, setShowPwd] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const strength = strengthOf(pwd);
 
   const tabBg = (t: AuthTab) => tab === t ? '#fff' : 'transparent';
   const tabFg = (t: AuthTab) => tab === t ? '#1b1b23' : '#8a8a95';
   const tabShadow = (t: AuthTab) => tab === t ? '0 1px 2px rgba(20,20,30,.08)' : 'none';
+
+  function switchTab(t: AuthTab) {
+    setTab(t);
+    setError(null);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const auth = tab === 'signup' ? await signup(name, email, pwd) : await login(email, pwd);
+      saveToken(auth.token);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,7 +105,8 @@ export default function Landing() {
             {(['signin', 'signup'] as AuthTab[]).map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                type="button"
+                onClick={() => switchTab(t)}
                 className="flex-1 py-[9px] rounded-[8px] text-[14px] font-bold cursor-pointer border-none"
                 style={{ background: tabBg(t), color: tabFg(t), boxShadow: tabShadow(t) }}
               >
@@ -89,6 +115,7 @@ export default function Landing() {
             ))}
           </div>
 
+          <form onSubmit={handleSubmit}>
           {/* Full name (signup only) */}
           {tab === 'signup' && (
             <div className="mb-4">
@@ -96,6 +123,9 @@ export default function Landing() {
               <input
                 type="text"
                 placeholder="Alex Chen"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
                 className="w-full border border-[#e4e4ec] rounded-[10px] px-[13px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
               />
             </div>
@@ -107,6 +137,9 @@ export default function Landing() {
             <input
               type="email"
               placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               className="w-full border border-[#e4e4ec] rounded-[10px] px-[13px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
             />
           </div>
@@ -120,6 +153,7 @@ export default function Landing() {
                 placeholder="••••••••"
                 value={pwd}
                 onChange={(e) => setPwd(e.target.value)}
+                required
                 className="w-full border border-[#e4e4ec] rounded-[10px] pl-[13px] pr-[60px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
               />
               <button
@@ -159,13 +193,22 @@ export default function Landing() {
             </div>
           )}
 
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 text-[13px] font-semibold text-[#d4483f]">{error}</div>
+          )}
+
           {/* Primary CTA */}
           <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full bg-brand text-white border-none py-[13px] rounded-[11px] text-[15px] font-bold cursor-pointer hover:bg-brand-hover transition-colors"
+            type="submit"
+            disabled={loading}
+            className="w-full bg-brand text-white border-none py-[13px] rounded-[11px] text-[15px] font-bold cursor-pointer hover:bg-brand-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {tab === 'signin' ? 'Sign in' : 'Create account'}
+            {loading
+              ? (tab === 'signin' ? 'Signing in…' : 'Creating account…')
+              : (tab === 'signin' ? 'Sign in' : 'Create account')}
           </button>
+          </form>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-5">
