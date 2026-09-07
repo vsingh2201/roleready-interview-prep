@@ -5,6 +5,14 @@ export interface AnalysisResponse {
   status: string;
 }
 
+export interface Analysis {
+  id: string;
+  userId: string;
+  jdText: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface SkillGap {
   skill: string;
   priority: string;
@@ -48,9 +56,48 @@ interface PrepPlanRaw {
   createdAt: string;
 }
 
+export interface ResumeResponse {
+  resumeId: string;
+  fileName: string;
+  parsedSkills: string[];
+}
+
 function authHeaders(): HeadersInit {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function uploadResume(file: File): Promise<ResumeResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/resume', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload your resume.');
+  }
+
+  return response.json();
+}
+
+export async function getLatestResume(): Promise<ResumeResponse | null> {
+  const response = await fetch('/api/resume/latest', {
+    headers: authHeaders(),
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to load your resume.');
+  }
+
+  return response.json();
 }
 
 export async function submitAnalysis(jdText: string, resumeId: string | null): Promise<AnalysisResponse> {
@@ -62,6 +109,18 @@ export async function submitAnalysis(jdText: string, resumeId: string | null): P
 
   if (!response.ok) {
     throw new Error('Failed to submit job description for analysis.');
+  }
+
+  return response.json();
+}
+
+export async function getAnalysis(analysisId: string): Promise<Analysis> {
+  const response = await fetch(`/api/analysis/${analysisId}`, {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load the analysis.');
   }
 
   return response.json();

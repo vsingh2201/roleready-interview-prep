@@ -1,32 +1,88 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
 import { getToken } from '../api/auth';
-import { submitAnalysis } from '../api/analysis';
+import { getLatestResume, submitAnalysis, uploadResume } from '../api/analysis';
 
 const JD_SKILLS = ['Kafka', 'Postgres', 'Idempotency', 'Distributed transactions', 'Observability', 'Python', 'REST APIs', 'System design'];
-const RESUME_SKILLS = ['Python', 'Django', 'REST APIs', 'Redis', 'Docker', 'Postgres', 'Unit testing', 'CI/CD'];
 
 const DEFAULT_JD = `Senior Backend Engineer — Payments\n\nBuild and operate high-throughput payment services. You'll design event-driven systems on Kafka, own Postgres schema design, and ship resilient APIs. Experience with idempotency, distributed transactions, and observability required.`;
 
+function formatFileSize(bytes: number): string {
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [jdText, setJdText] = useState(DEFAULT_JD);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [resumeId, setResumeId] = useState<string | null>(null);
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumeFileSize, setResumeFileSize] = useState<string | null>(null);
+  const [resumeSkills, setResumeSkills] = useState<string[]>([]);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!getToken()) {
       navigate('/');
+      return;
     }
+    getLatestResume()
+      .then((resume) => {
+        if (resume) {
+          setResumeId(resume.resumeId);
+          setResumeFileName(resume.fileName);
+          setResumeSkills(resume.parsedSkills);
+        }
+      })
+      .catch(() => {
+        // no existing resume to preload
+      });
   }, [navigate]);
+
+  async function handleResumeFile(file: File) {
+    if (file.type !== 'application/pdf') {
+      setResumeError('Please upload a PDF file.');
+      return;
+    }
+    setResumeError(null);
+    setResumeUploading(true);
+    setResumeFileSize(formatFileSize(file.size));
+    try {
+      const resume = await uploadResume(file);
+      setResumeId(resume.resumeId);
+      setResumeFileName(resume.fileName);
+      setResumeSkills(resume.parsedSkills);
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : 'Failed to upload your resume.');
+    } finally {
+      setResumeUploading(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleResumeFile(file);
+  }
+
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleResumeFile(file);
+    e.target.value = '';
+  }
 
   async function handleAnalyse() {
     setError(null);
     setSubmitting(true);
     try {
-      const { analysisId } = await submitAnalysis(jdText, null);
+      const { analysisId } = await submitAnalysis(jdText, resumeId);
       navigate(`/processing/${analysisId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
@@ -85,8 +141,19 @@ export default function Dashboard() {
               <span className="font-bold text-[16px]">Your resume</span>
             </div>
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleFileInputChange}
+            />
+
             {/* Drop zone */}
             <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
               className="border-2 border-dashed border-[#d6d6e0] rounded-[12px] p-[26px_20px] text-center bg-[#fbfbfd] cursor-pointer hover:border-brand hover:bg-[#f8f7fd] transition-colors"
             >
               <div className="w-[42px] h-[42px] mx-auto mb-3 rounded-[11px] bg-brand-light text-brand flex items-center justify-center">
@@ -96,36 +163,60 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div className="font-semibold text-[14.5px] mb-[3px]">Drop your resume PDF here</div>
-              <div className="text-[12.5px] text-[#8a8a95]">or click to browse · PDF up to 5 MB</div>
+              <div className="text-[12.5px] text-[#8a8a95]">
+                or{' '}
+                <span
+                  className="text-brand underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  browse files
+                </span>{' '}
+                · PDF up to 5 MB
+              </div>
             </div>
+
+            {resumeError && (
+              <div className="mt-3 text-[13px] font-semibold text-[#d4483f]">{resumeError}</div>
+            )}
 
             {/* Parsed file */}
-            <div className="flex items-center gap-[11px] mt-3 px-[13px] py-[11px] border border-[#e4e4ec] rounded-[10px] bg-white">
-              <div className="w-[30px] h-[34px] rounded-[5px] bg-brand flex items-center justify-center text-white text-[9px] font-extrabold flex-shrink-0">
-                PDF
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13.5px] font-semibold truncate">alex_chen_resume.pdf</div>
-                <div className="text-[11.5px] text-[#8a8a95]">142 KB · parsed</div>
-              </div>
-              <span className="text-[#2f9e6b] font-bold text-[12px] flex items-center gap-1 flex-shrink-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-                Done
-              </span>
-            </div>
-
-            <div className="mt-[18px]">
-              <div className="text-[12px] font-bold text-[#8a8a95] tracking-wide mb-[10px]">SKILLS PARSED FROM RESUME</div>
-              <div className="flex flex-wrap gap-2">
-                {RESUME_SKILLS.map((s) => (
-                  <span key={s} className="text-[12.5px] font-semibold text-[#3a3a45] bg-[#f3f3f7] border border-[#e8e8ee] px-[11px] py-[5px] rounded-full">
-                    {s}
+            {(resumeFileName || resumeUploading) && (
+              <div className="flex items-center gap-[11px] mt-3 px-[13px] py-[11px] border border-[#e4e4ec] rounded-[10px] bg-white">
+                <div className="w-[30px] h-[34px] rounded-[5px] bg-brand flex items-center justify-center text-white text-[9px] font-extrabold flex-shrink-0">
+                  PDF
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13.5px] font-semibold truncate">{resumeFileName ?? 'Uploading…'}</div>
+                  <div className="text-[11.5px] text-[#8a8a95]">
+                    {resumeUploading ? 'parsing…' : `${resumeFileSize ?? ''}${resumeFileSize ? ' · ' : ''}parsed`}
+                  </div>
+                </div>
+                {!resumeUploading && (
+                  <span className="text-[#2f9e6b] font-bold text-[12px] flex items-center gap-1 flex-shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    Done
                   </span>
-                ))}
+                )}
               </div>
-            </div>
+            )}
+
+            {resumeSkills.length > 0 && (
+              <div className="mt-[18px]">
+                <div className="text-[12px] font-bold text-[#8a8a95] tracking-wide mb-[10px]">SKILLS PARSED FROM RESUME</div>
+                <div className="flex flex-wrap gap-2">
+                  {resumeSkills.map((s) => (
+                    <span key={s} className="text-[12.5px] font-semibold text-[#3a3a45] bg-[#f3f3f7] border border-[#e8e8ee] px-[11px] py-[5px] rounded-full">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -28,6 +28,9 @@ public class RagRetrievalService {
             String embeddingLiteral = QuestionEmbeddingConverter.toLiteral(embedding);
 
             List<Question> matches = questionRepository.hybridSearch(skill, null, embeddingLiteral, RESULTS_PER_SKILL);
+            if (matches.isEmpty()) {
+                matches = questionRepository.findTopBySimilarity(embeddingLiteral, RESULTS_PER_SKILL);
+            }
             for (Question question : matches) {
                 deduped.putIfAbsent(question.getId(), question);
             }

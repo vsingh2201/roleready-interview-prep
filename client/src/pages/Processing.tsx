@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
 import { openSseConnection } from '../api/sse';
+import { getAnalysis } from '../api/analysis';
 
 type StepStatus = 'done' | 'active' | 'waiting';
 
@@ -83,6 +84,22 @@ export default function Processing() {
   const navigate = useNavigate();
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
   const [error, setError] = useState<string | null>(null);
+  const [subtitle, setSubtitle] = useState('Building your prep plan...');
+
+  useEffect(() => {
+    if (!analysisId) return;
+
+    getAnalysis(analysisId)
+      .then((analysis) => {
+        const firstLine = analysis.jdText.split('\n').find((line) => line.trim().length > 0);
+        if (firstLine) {
+          setSubtitle(firstLine.trim());
+        }
+      })
+      .catch(() => {
+        // keep the fallback subtitle
+      });
+  }, [analysisId]);
 
   useEffect(() => {
     if (!analysisId) return;
@@ -117,7 +134,7 @@ export default function Processing() {
         <div className="w-full max-w-[560px]">
           <div className="text-center mb-[34px]">
             <h1 className="text-[26px] font-extrabold tracking-tight mb-2">Building your prep plan</h1>
-            <p className="text-[15px] text-[#6b6b77]">Senior Backend Engineer — Payments</p>
+            <p className="text-[15px] text-[#6b6b77]">{subtitle}</p>
           </div>
 
           <div className="bg-white border border-[#ececf2] rounded-[16px] p-[10px_8px]">

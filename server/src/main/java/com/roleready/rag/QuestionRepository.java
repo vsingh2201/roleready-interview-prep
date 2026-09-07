@@ -21,4 +21,13 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
             @Param("difficulty") String difficulty,
             @Param("embedding") String embedding,
             @Param("limit") int limit);
+
+    @Query(value = """
+            SELECT * FROM questions
+            ORDER BY embedding <=> CAST(:embedding AS vector)
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Question> findTopBySimilarity(
+            @Param("embedding") String embedding,
+            @Param("limit") int limit);
 }
