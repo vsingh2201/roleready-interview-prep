@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
 import { getToken } from '../api/auth';
-import { getLatestResume, submitAnalysis, uploadResume } from '../api/analysis';
-
-const JD_SKILLS = ['Kafka', 'Postgres', 'Idempotency', 'Distributed transactions', 'Observability', 'Python', 'REST APIs', 'System design'];
+import { extractSkills, getLatestResume, submitAnalysis, uploadResume } from '../api/analysis';
 
 const DEFAULT_JD = `Senior Backend Engineer — Payments\n\nBuild and operate high-throughput payment services. You'll design event-driven systems on Kafka, own Postgres schema design, and ship resilient APIs. Experience with idempotency, distributed transactions, and observability required.`;
 
@@ -20,6 +18,9 @@ export default function Dashboard() {
   const [jdText, setJdText] = useState(DEFAULT_JD);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [jdSkills, setJdSkills] = useState<string[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
 
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
@@ -45,6 +46,32 @@ export default function Dashboard() {
         // no existing resume to preload
       });
   }, [navigate]);
+
+  useEffect(() => {
+    const trimmed = jdText.trim();
+    if (!trimmed) {
+      setJdSkills([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timeoutId = setTimeout(async () => {
+      setSkillsLoading(true);
+      try {
+        const skills = await extractSkills(trimmed);
+        if (!cancelled) setJdSkills(skills);
+      } catch {
+        // keep the previously detected skills on failure
+      } finally {
+        if (!cancelled) setSkillsLoading(false);
+      }
+    }, 1000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [jdText]);
 
   async function handleResumeFile(file: File) {
     if (file.type !== 'application/pdf') {
@@ -123,9 +150,20 @@ export default function Dashboard() {
               onChange={(e) => setJdText(e.target.value)}
             />
             <div className="mt-4">
-              <div className="text-[12px] font-bold text-[#8a8a95] tracking-wide mb-[10px]">AUTO-DETECTED SKILLS</div>
-              <div className="flex flex-wrap gap-2">
-                {JD_SKILLS.map((s) => (
+              <div className="flex items-center gap-2 mb-[10px]">
+                <div className="text-[12px] font-bold text-[#8a8a95] tracking-wide">AUTO-DETECTED SKILLS</div>
+                {skillsLoading && (
+                  <svg className="animate-spin text-[#8a8a95]" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+              </div>
+              <div className={`flex flex-wrap gap-2 transition-opacity ${skillsLoading ? 'opacity-60' : ''}`}>
+                {jdSkills.length === 0 && !skillsLoading && (
+                  <span className="text-[12.5px] text-[#8a8a95]">No skills detected yet.</span>
+                )}
+                {jdSkills.map((s) => (
                   <span key={s} className="text-[12.5px] font-semibold text-brand bg-[#f0eefb] border border-brand-border px-[11px] py-[5px] rounded-full">
                     {s}
                   </span>

@@ -1,5 +1,6 @@
 package com.roleready.jdanalysis;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -9,20 +10,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/analysis")
 @RequiredArgsConstructor
 public class JdAnalysisController {
 
     private final JdAnalysisService jdAnalysisService;
     private final AnalysisRepository analysisRepository;
+    private final SkillExtractionService skillExtractionService;
 
-    @PostMapping
+    @PostMapping("/api/analysis")
     public ResponseEntity<JdSubmitResponse> submit(
             @AuthenticationPrincipal UUID userId,
             @RequestBody JdSubmitRequest request) {
@@ -30,7 +30,7 @@ public class JdAnalysisController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
-    @GetMapping("/{analysisId}")
+    @GetMapping("/api/analysis/{analysisId}")
     public ResponseEntity<Analysis> get(
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID analysisId) {
@@ -38,5 +38,13 @@ public class JdAnalysisController {
                 .filter(analysis -> analysis.getUserId().equals(userId))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/api/skills/extract")
+    public ResponseEntity<SkillExtractResponse> extractSkills(
+            @AuthenticationPrincipal UUID userId,
+            @RequestBody SkillExtractRequest request) {
+        List<String> skills = skillExtractionService.extractSkills(request.getJdText());
+        return ResponseEntity.ok(new SkillExtractResponse(skills));
     }
 }

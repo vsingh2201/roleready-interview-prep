@@ -126,6 +126,21 @@ export async function getAnalysis(analysisId: string): Promise<Analysis> {
   return response.json();
 }
 
+export async function extractSkills(jdText: string): Promise<string[]> {
+  const response = await fetch('/api/skills/extract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ jdText }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to extract skills from the job description.');
+  }
+
+  const data: { skills: string[] } = await response.json();
+  return data.skills;
+}
+
 export async function getPrepPlan(analysisId: string): Promise<PrepPlan> {
   const response = await fetch(`/api/prep-plan/${analysisId}`, {
     headers: authHeaders(),
