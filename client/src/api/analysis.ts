@@ -141,6 +141,18 @@ export async function extractSkills(jdText: string): Promise<string[]> {
   return data.skills;
 }
 
+export async function getAnalysisHistory(): Promise<Analysis[]> {
+  const response = await fetch('/api/analysis/history', {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load your analysis history.');
+  }
+
+  return response.json();
+}
+
 export async function getPrepPlan(analysisId: string): Promise<PrepPlan> {
   const response = await fetch(`/api/prep-plan/${analysisId}`, {
     headers: authHeaders(),

@@ -3,6 +3,7 @@ import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Processing from './pages/Processing';
 import Results from './pages/Results';
+import History from './pages/History';
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/processing/:analysisId" element={<Processing />} />
         <Route path="/results/:analysisId" element={<Results />} />
+        <Route path="/history" element={<History />} />
       </Routes>
     </BrowserRouter>
   );

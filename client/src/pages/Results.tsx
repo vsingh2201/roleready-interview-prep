@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Avatar } from '../components/Avatar';
 import { getPrepPlan, type PrepPlan } from '../api/analysis';
@@ -80,6 +80,7 @@ type FilterVal = 'All' | Difficulty;
 const FILTERS: FilterVal[] = ['All', 'Hard', 'Medium', 'Easy'];
 
 export default function Results() {
+  const navigate = useNavigate();
   const { analysisId } = useParams<{ analysisId: string }>();
   const [filter, setFilter] = useState<FilterVal>('All');
   const [plan, setPlan] = useState<PrepPlan | null>(null);
@@ -172,12 +173,26 @@ export default function Results() {
               <h1 className="text-[24px] font-extrabold tracking-tight mb-1">Your prep plan</h1>
               <p className="text-[14px] text-[#6b6b77]">{allQuestions.length} interview questions matched to this role</p>
             </div>
-            <div className="flex items-center gap-[13px] border border-[#ececf2] rounded-[12px] px-[18px] py-[10px] bg-white">
-              <div className="text-right">
-                <div className="text-[11px] font-bold text-[#8a8a95] tracking-[.03em]">MATCH SCORE</div>
-                <div className="text-[12px] text-[#6b6b77]">{matchFitLabel(plan.matchScore)}</div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="text-[13px] font-semibold px-[15px] py-2 rounded-[10px] cursor-pointer border border-[#e4e4ec] bg-white text-[#4a4a55] hover:border-brand hover:text-brand transition-colors"
+              >
+                New analysis
+              </button>
+              <button
+                onClick={() => navigate('/history')}
+                className="text-[13px] font-semibold px-[15px] py-2 rounded-[10px] cursor-pointer border border-[#e4e4ec] bg-white text-[#4a4a55] hover:border-brand hover:text-brand transition-colors"
+              >
+                My history
+              </button>
+              <div className="flex items-center gap-[13px] border border-[#ececf2] rounded-[12px] px-[18px] py-[10px] bg-white">
+                <div className="text-right">
+                  <div className="text-[11px] font-bold text-[#8a8a95] tracking-[.03em]">MATCH SCORE</div>
+                  <div className="text-[12px] text-[#6b6b77]">{matchFitLabel(plan.matchScore)}</div>
+                </div>
+                <div className="text-[34px] font-extrabold text-brand tracking-tight leading-none">{plan.matchScore}%</div>
               </div>
-              <div className="text-[34px] font-extrabold text-brand tracking-tight leading-none">{plan.matchScore}%</div>
             </div>
           </div>
 

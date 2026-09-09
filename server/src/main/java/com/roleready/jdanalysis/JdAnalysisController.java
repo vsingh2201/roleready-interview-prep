@@ -30,6 +30,11 @@ public class JdAnalysisController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
+    @GetMapping("/api/analysis/history")
+    public ResponseEntity<List<Analysis>> history(@AuthenticationPrincipal UUID userId) {
+        return ResponseEntity.ok(analysisRepository.findByUserIdOrderByCreatedAtDesc(userId));
+    }
+
     @GetMapping("/api/analysis/{analysisId}")
     public ResponseEntity<Analysis> get(
             @AuthenticationPrincipal UUID userId,
