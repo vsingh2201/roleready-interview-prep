@@ -1,16 +1,32 @@
-export function openSseConnection(
-  analysisId: string,
-  onPlanGenerated: (prepPlanId: string) => void,
-  onError: () => void
-): () => void {
+export interface SseHandlers {
+  onKafkaPublished?: (data: string) => void;
+  onSkillsExtracted?: (data: string) => void;
+  onRagRetrieved?: (data: string) => void;
+  onPlanGenerated: (prepPlanId: string) => void;
+  onError: () => void;
+}
+
+export function openSseConnection(analysisId: string, handlers: SseHandlers): () => void {
   const es = new EventSource(`/api/events/${analysisId}`);
 
+  es.addEventListener('kafka_published', (event) => {
+    handlers.onKafkaPublished?.((event as MessageEvent<string>).data);
+  });
+
+  es.addEventListener('skills_extracted', (event) => {
+    handlers.onSkillsExtracted?.((event as MessageEvent<string>).data);
+  });
+
+  es.addEventListener('rag_retrieved', (event) => {
+    handlers.onRagRetrieved?.((event as MessageEvent<string>).data);
+  });
+
   es.addEventListener('plan_generated', (event) => {
-    onPlanGenerated((event as MessageEvent<string>).data);
+    handlers.onPlanGenerated((event as MessageEvent<string>).data);
   });
 
   es.onerror = () => {
-    onError();
+    handlers.onError();
   };
 
   return () => {

@@ -40,6 +40,23 @@ function stepTag(status: StepStatus, defaultTag: string): string {
   return defaultTag;
 }
 
+function advanceSteps(
+  steps: Step[],
+  doneIndex: number,
+  activeIndex: number | null,
+  subtitle?: string
+): Step[] {
+  return steps.map((s, i) => {
+    if (i === doneIndex) {
+      return { ...s, status: 'done', tag: 'DONE', subtitle: subtitle ?? s.subtitle };
+    }
+    if (activeIndex !== null && i === activeIndex) {
+      return { ...s, status: 'active', tag: 'WORKING' };
+    }
+    return s;
+  });
+}
+
 function CheckIcon() {
   return (
     <div className="w-[26px] h-[26px] rounded-full bg-brand flex items-center justify-center flex-shrink-0">
@@ -109,16 +126,26 @@ export default function Processing() {
       prev.map((s, i) => (i === 0 ? { ...s, status: 'active', tag: stepTag('active', s.tag) } : s))
     );
 
-    const closeSse = openSseConnection(
-      analysisId,
-      () => {
-        setSteps((prev) => prev.map((s) => ({ ...s, status: 'done', tag: 'DONE' })));
+    const closeSse = openSseConnection(analysisId, {
+      onKafkaPublished: (data) => {
+        setSteps((prev) => advanceSteps(prev, 0, 1, data));
+      },
+      onSkillsExtracted: (data) => {
+        setSteps((prev) => advanceSteps(prev, 1, 2, data));
+      },
+      onRagRetrieved: (data) => {
+        setSteps((prev) => advanceSteps(prev, 2, 3, data));
+      },
+      onPlanGenerated: () => {
+        setSteps((prev) =>
+          prev.map((s, i) => (i === 3 || i === 4 ? { ...s, status: 'done', tag: 'DONE' } : s))
+        );
         navigate(`/results/${analysisId}`);
       },
-      () => {
+      onError: () => {
         setError('Something went wrong while generating your prep plan. Please try again.');
-      }
-    );
+      },
+    });
 
     return closeSse;
   }, [analysisId, navigate]);

@@ -41,6 +41,8 @@ public class JdAnalysisConsumer {
 
         log.info("Received JD for analysis: analysisId={}, userId={}", analysisId, userId);
 
+        sseEmitterRegistry.send(analysisId, "kafka_published", "JD received");
+
         List<String> extractedSkills;
         String resumeText = null;
 
@@ -53,8 +55,12 @@ public class JdAnalysisConsumer {
             extractedSkills = prepPlanService.extractSkillsFromJd(jdText);
         }
 
+        sseEmitterRegistry.send(analysisId, "skills_extracted", extractedSkills.size() + " skills identified");
+
         List<Question> questions = ragRetrievalService.retrieve(jdText, extractedSkills);
         log.info("RAG retrieved {} questions for analysisId={}", questions.size(), analysisId);
+
+        sseEmitterRegistry.send(analysisId, "rag_retrieved", questions.size() + " questions retrieved");
 
         PrepPlan prepPlan = prepPlanService.generate(
                 UUID.fromString(analysisId), UUID.fromString(userId), jdText, questions, resumeText);
