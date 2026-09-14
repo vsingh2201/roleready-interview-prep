@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Logo } from '../components/Logo';
-import { Avatar } from '../components/Avatar';
+import { NavBar } from '../components/NavBar';
 import { getPrepPlan, type PrepPlan } from '../api/analysis';
 
 type Difficulty = 'Hard' | 'Medium' | 'Easy';
@@ -121,13 +120,7 @@ export default function Results() {
 
   return (
     <div className="min-h-screen">
-      <nav
-        className="flex items-center justify-between px-8 py-[15px] border-b border-[#ececf2] sticky top-0 z-10"
-        style={{ background: '#fafafc' }}
-      >
-        <Logo size="sm" />
-        <Avatar />
-      </nav>
+      <NavBar />
 
       <div className="flex flex-wrap items-start">
         {/* Sidebar */}

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Logo } from '../components/Logo';
-import { Avatar } from '../components/Avatar';
+import { NavBar } from '../components/NavBar';
 import { getToken } from '../api/auth';
 import { extractSkills, getLatestResume, submitAnalysis, uploadResume } from '../api/analysis';
 
@@ -119,16 +118,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      <nav
-        className="flex items-center justify-between px-8 py-[15px] border-b border-[#ececf2] sticky top-0 z-10"
-        style={{ background: '#fafafc' }}
-      >
-        <Logo size="sm" />
-        <div className="flex items-center gap-4">
-          <span className="text-[13.5px] text-[#6b6b77] font-medium">octocat</span>
-          <Avatar />
-        </div>
-      </nav>
+      <NavBar />
 
       <div className="max-w-[1160px] mx-auto px-8 pt-10 pb-[90px]">
         <div className="mb-[30px]">

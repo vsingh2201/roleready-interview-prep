@@ -1,5 +1,6 @@
 package com.roleready.auth;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.roleready.common.JwtUtil;
@@ -42,8 +44,11 @@ public class GitHubOAuthController {
     @Value("${app.github.client-secret}")
     private String clientSecret;
 
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl;
+
     @GetMapping("/callback")
-    public ResponseEntity<AuthResponse> callback(@RequestParam("code") String code) {
+    public ResponseEntity<Void> callback(@RequestParam("code") String code) {
         String accessToken = exchangeCodeForAccessToken(code);
         JsonNode profile = fetchGitHubProfile(accessToken);
 
@@ -63,7 +68,19 @@ public class GitHubOAuthController {
                         .build()));
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail());
-        return ResponseEntity.ok(new AuthResponse(token, user.getId(), user.getEmail(), user.getName()));
+
+        URI redirectUri = UriComponentsBuilder.fromUriString(frontendBaseUrl)
+                .path("/auth/callback")
+                .queryParam("token", token)
+                .queryParam("name", user.getName())
+                .queryParam("email", user.getEmail())
+                .encode()
+                .build()
+                .toUri();
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(redirectUri)
+                .build();
     }
 
     private String exchangeCodeForAccessToken(String code) {

@@ -45,14 +45,25 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return response.json();
 }
 
-export function saveToken(token: string): void {
+const NAME_KEY = 'rr_name';
+const EMAIL_KEY = 'rr_email';
+
+export function saveToken(token: string, name: string, email: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(NAME_KEY, name);
+  localStorage.setItem(EMAIL_KEY, email);
 }
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+export function getUserName(): string | null {
+  return localStorage.getItem(NAME_KEY);
+}
+
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(NAME_KEY);
+  localStorage.removeItem(EMAIL_KEY);
 }

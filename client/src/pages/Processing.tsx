@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Logo } from '../components/Logo';
-import { Avatar } from '../components/Avatar';
+import { NavBar } from '../components/NavBar';
 import { openSseConnection } from '../api/sse';
 import { getAnalysis } from '../api/analysis';
 
@@ -152,10 +151,7 @@ export default function Processing() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#fafafc' }}>
-      <nav className="flex items-center justify-between px-8 py-[15px] border-b border-[#ececf2] bg-white">
-        <Logo size="sm" />
-        <Avatar />
-      </nav>
+      <NavBar />
 
       <div className="flex-1 flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-[560px]">

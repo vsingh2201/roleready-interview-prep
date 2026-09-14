@@ -42,13 +42,17 @@ export default function Landing() {
     setError(null);
   }
 
+  function handleGitHubLogin() {
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&scope=user:email`;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
       const auth = tab === 'signup' ? await signup(name, email, pwd) : await login(email, pwd);
-      saveToken(auth.token);
+      saveToken(auth.token, auth.name, auth.email);
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
@@ -219,7 +223,7 @@ export default function Landing() {
 
           {/* GitHub */}
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={handleGitHubLogin}
             className="w-full flex items-center justify-center gap-[10px] bg-white text-[#1b1b23] border-[1.5px] border-[#1b1b23] py-[12px] rounded-[11px] text-[14.5px] font-semibold cursor-pointer hover:bg-[#1b1b23] hover:text-white transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">

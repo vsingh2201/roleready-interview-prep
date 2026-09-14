@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Logo } from '../components/Logo';
-import { Avatar } from '../components/Avatar';
+import { NavBar } from '../components/NavBar';
 import { getAnalysisHistory, type Analysis } from '../api/analysis';
 
 function statusColors(status: string): { fg: string; bg: string } {
@@ -35,13 +34,7 @@ export default function History() {
 
   return (
     <div className="min-h-screen">
-      <nav
-        className="flex items-center justify-between px-8 py-[15px] border-b border-[#ececf2] sticky top-0 z-10"
-        style={{ background: '#fafafc' }}
-      >
-        <Logo size="sm" />
-        <Avatar />
-      </nav>
+      <NavBar />
 
       <div className="max-w-[900px] mx-auto px-8 pt-10 pb-[90px]">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-[30px]">
