@@ -1,3 +1,5 @@
+import { API_BASE } from './auth';
+
 export interface SseHandlers {
   onKafkaPublished?: (data: string) => void;
   onSkillsExtracted?: (data: string) => void;
@@ -7,7 +9,7 @@ export interface SseHandlers {
 }
 
 export function openSseConnection(analysisId: string, handlers: SseHandlers): () => void {
-  const es = new EventSource(`/api/events/${analysisId}`);
+  const es = new EventSource(`${API_BASE}/api/events/${analysisId}`);
 
   es.addEventListener('kafka_published', (event) => {
     handlers.onKafkaPublished?.((event as MessageEvent<string>).data);

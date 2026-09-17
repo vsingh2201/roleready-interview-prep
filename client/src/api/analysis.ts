@@ -1,4 +1,4 @@
-import { getToken } from './auth';
+import { API_BASE, getToken } from './auth';
 
 export interface AnalysisResponse {
   analysisId: string;
@@ -71,7 +71,7 @@ export async function uploadResume(file: File): Promise<ResumeResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch('/api/resume', {
+  const response = await fetch(`${API_BASE}/api/resume`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -85,7 +85,7 @@ export async function uploadResume(file: File): Promise<ResumeResponse> {
 }
 
 export async function getLatestResume(): Promise<ResumeResponse | null> {
-  const response = await fetch('/api/resume/latest', {
+  const response = await fetch(`${API_BASE}/api/resume/latest`, {
     headers: authHeaders(),
   });
 
@@ -101,7 +101,7 @@ export async function getLatestResume(): Promise<ResumeResponse | null> {
 }
 
 export async function submitAnalysis(jdText: string, resumeId: string | null): Promise<AnalysisResponse> {
-  const response = await fetch('/api/analysis', {
+  const response = await fetch(`${API_BASE}/api/analysis`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ jdText, resumeId }),
@@ -115,7 +115,7 @@ export async function submitAnalysis(jdText: string, resumeId: string | null): P
 }
 
 export async function getAnalysis(analysisId: string): Promise<Analysis> {
-  const response = await fetch(`/api/analysis/${analysisId}`, {
+  const response = await fetch(`${API_BASE}/api/analysis/${analysisId}`, {
     headers: authHeaders(),
   });
 
@@ -127,7 +127,7 @@ export async function getAnalysis(analysisId: string): Promise<Analysis> {
 }
 
 export async function extractSkills(jdText: string): Promise<string[]> {
-  const response = await fetch('/api/skills/extract', {
+  const response = await fetch(`${API_BASE}/api/skills/extract`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ jdText }),
@@ -142,7 +142,7 @@ export async function extractSkills(jdText: string): Promise<string[]> {
 }
 
 export async function getAnalysisHistory(): Promise<Analysis[]> {
-  const response = await fetch('/api/analysis/history', {
+  const response = await fetch(`${API_BASE}/api/analysis/history`, {
     headers: authHeaders(),
   });
 
@@ -154,7 +154,7 @@ export async function getAnalysisHistory(): Promise<Analysis[]> {
 }
 
 export async function getPrepPlan(analysisId: string): Promise<PrepPlan> {
-  const response = await fetch(`/api/prep-plan/${analysisId}`, {
+  const response = await fetch(`${API_BASE}/api/prep-plan/${analysisId}`, {
     headers: authHeaders(),
   });
 

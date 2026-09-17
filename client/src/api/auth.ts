@@ -1,3 +1,5 @@
+export const API_BASE = import.meta.env.VITE_API_URL ?? '';
+
 const TOKEN_KEY = 'rr_token';
 
 export interface AuthResponse {
@@ -18,7 +20,7 @@ async function parseError(response: Response, fallback: string): Promise<string>
 }
 
 export async function signup(name: string, email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch('/api/auth/signup', {
+  const response = await fetch(`${API_BASE}/api/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, password }),
@@ -32,7 +34,7 @@ export async function signup(name: string, email: string, password: string): Pro
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch('/api/auth/login', {
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
