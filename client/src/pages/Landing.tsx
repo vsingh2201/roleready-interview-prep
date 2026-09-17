@@ -1,41 +1,42 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Logo } from '../components/Logo';
-import { login, saveToken, signup } from '../api/auth';
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { Logo } from "../components/Logo";
+import { login, saveToken, signup } from "../api/auth";
 
-type AuthTab = 'signin' | 'signup';
+type AuthTab = "signin" | "signup";
 
 function strengthOf(pwd: string): { n: number; label: string; color: string } {
-  if (!pwd.length) return { n: 0, label: '', color: '' };
+  if (!pwd.length) return { n: 0, label: "", color: "" };
   let n = 0;
   if (pwd.length >= 8) n++;
   if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) n++;
   if (/\d/.test(pwd)) n++;
   if (/[^A-Za-z0-9]/.test(pwd)) n++;
   const meta = [
-    { label: 'Too weak', color: '#d4483f' },
-    { label: 'Weak', color: '#d4483f' },
-    { label: 'Fair', color: '#d99a20' },
-    { label: 'Good', color: '#2f9e6b' },
-    { label: 'Strong', color: '#2f9e6b' },
+    { label: "Too weak", color: "#d4483f" },
+    { label: "Weak", color: "#d4483f" },
+    { label: "Fair", color: "#d99a20" },
+    { label: "Good", color: "#2f9e6b" },
+    { label: "Strong", color: "#2f9e6b" },
   ];
   return { n, ...meta[n] };
 }
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<AuthTab>('signin');
+  const [tab, setTab] = useState<AuthTab>("signin");
   const [showPwd, setShowPwd] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [pwd, setPwd] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const strength = strengthOf(pwd);
 
-  const tabBg = (t: AuthTab) => tab === t ? '#fff' : 'transparent';
-  const tabFg = (t: AuthTab) => tab === t ? '#1b1b23' : '#8a8a95';
-  const tabShadow = (t: AuthTab) => tab === t ? '0 1px 2px rgba(20,20,30,.08)' : 'none';
+  const tabBg = (t: AuthTab) => (tab === t ? "#fff" : "transparent");
+  const tabFg = (t: AuthTab) => (tab === t ? "#1b1b23" : "#8a8a95");
+  const tabShadow = (t: AuthTab) =>
+    tab === t ? "0 1px 2px rgba(20,20,30,.08)" : "none";
 
   function switchTab(t: AuthTab) {
     setTab(t);
@@ -43,7 +44,8 @@ export default function Landing() {
   }
 
   function handleGitHubLogin() {
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&scope=user:email`;
+    const redirectUri = `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/auth/github/callback`;
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -51,11 +53,18 @@ export default function Landing() {
     setError(null);
     setLoading(true);
     try {
-      const auth = tab === 'signup' ? await signup(name, email, pwd) : await login(email, pwd);
+      const auth =
+        tab === "signup"
+          ? await signup(name, email, pwd)
+          : await login(email, pwd);
       saveToken(auth.token, auth.name, auth.email);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -66,7 +75,7 @@ export default function Landing() {
       <header className="flex items-center justify-between px-10 py-[22px]">
         <Logo />
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate("/dashboard")}
           className="text-[14.5px] font-semibold text-[#5c5c68] bg-transparent border-none cursor-pointer"
         >
           Sign in
@@ -83,135 +92,160 @@ export default function Landing() {
         {/* Hero */}
         <h1
           className="font-extrabold tracking-tight mb-[22px] max-w-[820px]"
-          style={{ fontSize: 'clamp(38px,6vw,62px)', lineHeight: 1.05 }}
+          style={{ fontSize: "clamp(38px,6vw,62px)", lineHeight: 1.05 }}
         >
-          Walk into every interview<br />
+          Walk into every interview
+          <br />
           <span className="text-brand">actually ready.</span>
         </h1>
         <p
           className="text-[#5c5c68] max-w-[560px] mb-[38px]"
-          style={{ fontSize: 'clamp(16px,2.2vw,20px)', lineHeight: 1.5 }}
+          style={{ fontSize: "clamp(16px,2.2vw,20px)", lineHeight: 1.5 }}
         >
-          Paste a job description, drop your resume, and RoleReady maps your skill gaps and builds
-          a personalised prep plan — grounded in real interview data.
+          Paste a job description, drop your resume, and RoleReady maps your
+          skill gaps and builds a personalised prep plan — grounded in real
+          interview data.
         </p>
 
         {/* Auth card */}
         <div
           className="w-full max-w-[400px] text-left rounded-[18px] border border-[#ececf2] bg-white p-[26px_26px_28px]"
-          style={{ boxShadow: '0 1px 2px rgba(20,20,30,.03)' }}
+          style={{ boxShadow: "0 1px 2px rgba(20,20,30,.03)" }}
         >
           {/* Tabs */}
           <div
             className="flex gap-1 rounded-[11px] border border-[#ececf2] p-1 mb-6"
-            style={{ background: '#f4f4f7' }}
+            style={{ background: "#f4f4f7" }}
           >
-            {(['signin', 'signup'] as AuthTab[]).map((t) => (
+            {(["signin", "signup"] as AuthTab[]).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => switchTab(t)}
                 className="flex-1 py-[9px] rounded-[8px] text-[14px] font-bold cursor-pointer border-none"
-                style={{ background: tabBg(t), color: tabFg(t), boxShadow: tabShadow(t) }}
+                style={{
+                  background: tabBg(t),
+                  color: tabFg(t),
+                  boxShadow: tabShadow(t),
+                }}
               >
-                {t === 'signin' ? 'Sign in' : 'Sign up'}
+                {t === "signin" ? "Sign in" : "Sign up"}
               </button>
             ))}
           </div>
 
           <form onSubmit={handleSubmit}>
-          {/* Full name (signup only) */}
-          {tab === 'signup' && (
+            {/* Full name (signup only) */}
+            {tab === "signup" && (
+              <div className="mb-4">
+                <label className="block text-[12.5px] font-bold text-[#4a4a55] mb-[7px]">
+                  Full name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Alex Chen"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full border border-[#e4e4ec] rounded-[10px] px-[13px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
+                />
+              </div>
+            )}
+
+            {/* Email */}
             <div className="mb-4">
-              <label className="block text-[12.5px] font-bold text-[#4a4a55] mb-[7px]">Full name</label>
+              <label className="block text-[12.5px] font-bold text-[#4a4a55] mb-[7px]">
+                Email
+              </label>
               <input
-                type="text"
-                placeholder="Alex Chen"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full border border-[#e4e4ec] rounded-[10px] px-[13px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
               />
             </div>
-          )}
 
-          {/* Email */}
-          <div className="mb-4">
-            <label className="block text-[12.5px] font-bold text-[#4a4a55] mb-[7px]">Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full border border-[#e4e4ec] rounded-[10px] px-[13px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
-            />
-          </div>
-
-          {/* Password */}
-          <div className="mb-[6px]">
-            <label className="block text-[12.5px] font-bold text-[#4a4a55] mb-[7px]">Password</label>
-            <div className="relative">
-              <input
-                type={showPwd ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={pwd}
-                onChange={(e) => setPwd(e.target.value)}
-                required
-                className="w-full border border-[#e4e4ec] rounded-[10px] pl-[13px] pr-[60px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPwd((v) => !v)}
-                className="absolute right-[6px] top-1/2 -translate-y-1/2 border-none bg-transparent text-brand text-[12.5px] font-bold cursor-pointer px-[8px] py-[6px]"
-              >
-                {showPwd ? 'Hide' : 'Show'}
-              </button>
-            </div>
-          </div>
-
-          {/* Forgot password (signin) */}
-          {tab === 'signin' && (
-            <div className="text-right mb-5">
-              <a href="#" className="text-[12.5px] font-semibold">Forgot password?</a>
-            </div>
-          )}
-
-          {/* Strength meter (signup) */}
-          {tab === 'signup' && (
-            <div className="mt-[10px] mb-5">
-              <div className="flex gap-[5px] mb-[6px]">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-[5px] rounded-full"
-                    style={{ background: i < strength.n ? strength.color : '#eaeaf0' }}
-                  />
-                ))}
+            {/* Password */}
+            <div className="mb-[6px]">
+              <label className="block text-[12.5px] font-bold text-[#4a4a55] mb-[7px]">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={pwd}
+                  onChange={(e) => setPwd(e.target.value)}
+                  required
+                  className="w-full border border-[#e4e4ec] rounded-[10px] pl-[13px] pr-[60px] py-[12px] text-[14px] text-[#2a2a34] outline-none bg-[#fbfbfd] focus:border-brand focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute right-[6px] top-1/2 -translate-y-1/2 border-none bg-transparent text-brand text-[12.5px] font-bold cursor-pointer px-[8px] py-[6px]"
+                >
+                  {showPwd ? "Hide" : "Show"}
+                </button>
               </div>
-              {pwd.length > 0 && (
-                <div className="text-[11.5px] font-bold" style={{ color: strength.color }}>
-                  {strength.label}
-                </div>
-              )}
             </div>
-          )}
 
-          {/* Error message */}
-          {error && (
-            <div className="mb-4 text-[13px] font-semibold text-[#d4483f]">{error}</div>
-          )}
+            {/* Forgot password (signin) */}
+            {tab === "signin" && (
+              <div className="text-right mb-5">
+                <a href="#" className="text-[12.5px] font-semibold">
+                  Forgot password?
+                </a>
+              </div>
+            )}
 
-          {/* Primary CTA */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand text-white border-none py-[13px] rounded-[11px] text-[15px] font-bold cursor-pointer hover:bg-brand-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading
-              ? (tab === 'signin' ? 'Signing in…' : 'Creating account…')
-              : (tab === 'signin' ? 'Sign in' : 'Create account')}
-          </button>
+            {/* Strength meter (signup) */}
+            {tab === "signup" && (
+              <div className="mt-[10px] mb-5">
+                <div className="flex gap-[5px] mb-[6px]">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="flex-1 h-[5px] rounded-full"
+                      style={{
+                        background: i < strength.n ? strength.color : "#eaeaf0",
+                      }}
+                    />
+                  ))}
+                </div>
+                {pwd.length > 0 && (
+                  <div
+                    className="text-[11.5px] font-bold"
+                    style={{ color: strength.color }}
+                  >
+                    {strength.label}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error message */}
+            {error && (
+              <div className="mb-4 text-[13px] font-semibold text-[#d4483f]">
+                {error}
+              </div>
+            )}
+
+            {/* Primary CTA */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand text-white border-none py-[13px] rounded-[11px] text-[15px] font-bold cursor-pointer hover:bg-brand-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading
+                ? tab === "signin"
+                  ? "Signing in…"
+                  : "Creating account…"
+                : tab === "signin"
+                  ? "Sign in"
+                  : "Create account"}
+            </button>
           </form>
 
           {/* Divider */}
@@ -233,9 +267,10 @@ export default function Landing() {
           </button>
 
           {/* Terms (signup) */}
-          {tab === 'signup' && (
+          {tab === "signup" && (
             <p className="text-[11.5px] leading-relaxed text-[#9a9aa4] text-center mt-[18px] mb-0">
-              By signing up you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
+              By signing up you agree to our <a href="#">Terms</a> and{" "}
+              <a href="#">Privacy Policy</a>
             </p>
           )}
         </div>
@@ -243,31 +278,36 @@ export default function Landing() {
         {/* Feature cards */}
         <div
           className="grid gap-[18px] max-w-[920px] w-full mt-[76px] text-left"
-          style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}
+          style={{ gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))" }}
         >
           {[
             {
-              badge: 'RAG',
-              title: 'Grounded retrieval',
-              desc: 'Questions and hints are retrieved from a curated corpus of real interviews — no hallucinated fluff.',
+              badge: "RAG",
+              title: "Grounded retrieval",
+              desc: "Questions and hints are retrieved from a curated corpus of real interviews — no hallucinated fluff.",
             },
             {
-              badge: 'Kafka',
-              title: 'Event-driven pipeline',
-              desc: 'Every job description is streamed through Kafka so extraction and analysis scale without blocking you.',
+              badge: "Kafka",
+              title: "Event-driven pipeline",
+              desc: "Every job description is streamed through Kafka so extraction and analysis scale without blocking you.",
             },
             {
-              badge: 'SSE',
-              title: 'Live progress',
+              badge: "SSE",
+              title: "Live progress",
               desc: "Server-sent events push your prep plan the moment it's ready — close the tab and come back anytime.",
             },
           ].map((c) => (
-            <div key={c.title} className="border border-[#ececf2] rounded-[16px] p-[26px_24px] bg-[#fbfbfd]">
+            <div
+              key={c.title}
+              className="border border-[#ececf2] rounded-[16px] p-[26px_24px] bg-[#fbfbfd]"
+            >
               <div className="w-[38px] h-[38px] rounded-[10px] bg-brand-light text-brand flex items-center justify-center font-extrabold text-[13px] mb-4">
                 {c.badge}
               </div>
               <div className="font-bold text-[16px] mb-[6px]">{c.title}</div>
-              <div className="text-[14px] leading-relaxed text-[#6b6b77]">{c.desc}</div>
+              <div className="text-[14px] leading-relaxed text-[#6b6b77]">
+                {c.desc}
+              </div>
             </div>
           ))}
         </div>
